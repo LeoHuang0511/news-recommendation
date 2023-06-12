@@ -11,6 +11,7 @@ class BaseConfig():
     """
     General configurations appiled to all models
     """
+    print("Hello")
     num_epochs = 2
     num_batches_show_loss = 100  # Number of batchs to show loss
     # Number of batchs to check metrics on validation dataset
