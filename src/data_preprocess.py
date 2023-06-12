@@ -102,8 +102,9 @@ def parse_news(source, target, category2int_path, word2int_path,
                              'id', 'category', 'subcategory', 'title',
                              'abstract', 'title_entities', 'abstract_entities'
                          ])  # TODO try to avoid csv.QUOTE_NONE
-    news.title_entities.fillna('[]', inplace=True)
-    news.abstract_entities.fillna('[]', inplace=True)
+    # print(f'{news.iloc[0] = }')
+    news['title_entities'].fillna('[]', inplace=True)
+    news['abstract_entities'].fillna('[]', inplace=True)
     news.fillna(' ', inplace=True)
 
     def parse_row(row):
@@ -118,16 +119,33 @@ def parse_news(source, target, category2int_path, word2int_path,
 
         # Calculate local entity map (map lower single word to entity)
         local_entity_map = {}
-        for e in json.loads(row.title_entities):
-            if e['Confidence'] > config.entity_confidence_threshold and e[
-                    'WikidataId'] in entity2int:
-                for x in ' '.join(e['SurfaceForms']).lower().split():
-                    local_entity_map[x] = entity2int[e['WikidataId']]
-        for e in json.loads(row.abstract_entities):
-            if e['Confidence'] > config.entity_confidence_threshold and e[
-                    'WikidataId'] in entity2int:
-                for x in ' '.join(e['SurfaceForms']).lower().split():
-                    local_entity_map[x] = entity2int[e['WikidataId']]
+        row_title_entities = row.title_entities.replace('""', '"') 
+        if len(row.title_entities) > 2:
+            row_title_entities = row_title_entities[1:-1] # remove the ["] at the begining and the end
+        try:
+            for e in json.loads(row_title_entities):
+                if e['Confidence'] > config.entity_confidence_threshold and e[
+                        'WikidataId'] in entity2int:
+                    for x in ' '.join(e['SurfaceForms']).lower().split():
+                        local_entity_map[x] = entity2int[e['WikidataId']]
+        except:
+            print(f'[{row.id}]{row.title_entities = }')
+            print(f'{row_title_entities = }')
+            exit()
+
+        row_abstract_entities = row.abstract_entities.replace('""', '"') 
+        if len(row.abstract_entities) > 2:
+            row_abstract_entities = row_abstract_entities[1:-1] # remove the ["] at the begining and the end
+        try:
+            for e in json.loads(row_abstract_entities):
+                if e['Confidence'] > config.entity_confidence_threshold and e[
+                        'WikidataId'] in entity2int:
+                    for x in ' '.join(e['SurfaceForms']).lower().split():
+                        local_entity_map[x] = entity2int[e['WikidataId']]
+        except:
+            print(f'[{row.id}]{row.abstract_entities = }')
+            print(f'{row_abstract_entities = }')
+            exit()
 
         try:
             for i, w in enumerate(word_tokenize(row.title.lower())):
@@ -177,15 +195,30 @@ def parse_news(source, target, category2int_path, word2int_path,
                 else:
                     word2freq[w] += 1
 
-            for e in json.loads(row.title_entities):
-                times = len(e['OccurrenceOffsets']) * e['Confidence']
-                if times > 0:
-                    if e['WikidataId'] not in entity2freq:
-                        entity2freq[e['WikidataId']] = times
-                    else:
-                        entity2freq[e['WikidataId']] += times
+            # print(f'{row.title_entities = }')
+            row_title_entities = row.title_entities.replace('""', '"') 
+            if len(row.title_entities) > 2:
+                row_title_entities = row_title_entities[1:-1] # remove the ["] at the begining and the end
+            # print(f'{row_title_entities = }')
+            try:
+                for e in json.loads(row_title_entities):
+                    times = len(e['OccurrenceOffsets']) * e['Confidence']
+                    if times > 0:
+                        if e['WikidataId'] not in entity2freq:
+                            entity2freq[e['WikidataId']] = times
+                        else:
+                            entity2freq[e['WikidataId']] += times
+            except:
+                print(f'[{row.id}]{row.title_entities = }')
+                print(f'{row_title_entities = }')
+                exit()
 
-            for e in json.loads(row.abstract_entities):
+            # print(f'{row.abstract_entities = }')
+            row_abstract_entities = row.abstract_entities.replace('""', '"') 
+            if len(row.abstract_entities) > 2:
+                row_abstract_entities = row_abstract_entities[1:-1] # remove the ["] at the begining and the end
+            for e in json.loads(row_abstract_entities):
+            # for e in json.loads(row.abstract_entities):
                 times = len(e['OccurrenceOffsets']) * e['Confidence']
                 if times > 0:
                     if e['WikidataId'] not in entity2freq:
@@ -314,45 +347,54 @@ if __name__ == '__main__':
 
     print('Process data for training')
 
-    print('Parse behaviors')
-    parse_behaviors(path.join(train_dir, 'behaviors.tsv'),
-                    path.join(train_dir, 'behaviors_parsed.tsv'),
-                    path.join(train_dir, 'user2int.tsv'))
+    if not path.exists(path.join(train_dir, 'behaviors_parsed.tsv')):
+        print('Parse behaviors')
+        parse_behaviors(path.join(train_dir, 'train_behaviors.tsv'),
+                        path.join(train_dir, 'behaviors_parsed.tsv'),
+                        path.join(train_dir, 'user2int.tsv'))
+    else: print('Skip [Parse behaviors]')
 
-    print('Parse news')
-    parse_news(path.join(train_dir, 'news.tsv'),
-               path.join(train_dir, 'news_parsed.tsv'),
-               path.join(train_dir, 'category2int.tsv'),
-               path.join(train_dir, 'word2int.tsv'),
-               path.join(train_dir, 'entity2int.tsv'),
-               mode='train')
+    if not path.exists(path.join(train_dir, 'news_parsed.tsv')):
+        print('Parse news')
+        parse_news(path.join(train_dir, 'train_news.tsv'),
+                path.join(train_dir, 'news_parsed.tsv'),
+                path.join(train_dir, 'category2int.tsv'),
+                path.join(train_dir, 'word2int.tsv'),
+                path.join(train_dir, 'entity2int.tsv'),
+                mode='train')
+    else: print('Skip [Parse news]')
 
-    print('Generate word embedding')
-    generate_word_embedding(
-        f'./data/glove/glove.840B.{config.word_embedding_dim}d.txt',
-        path.join(train_dir, 'pretrained_word_embedding.npy'),
-        path.join(train_dir, 'word2int.tsv'))
+    if not path.exists(path.join(train_dir, 'pretrained_word_embedding.npy')):
+        print('Generate word embedding')
+        generate_word_embedding(
+            f'./data/glove/glove.840B.{config.word_embedding_dim}d.txt',
+            path.join(train_dir, 'pretrained_word_embedding.npy'),
+            path.join(train_dir, 'word2int.tsv'))
+    else: print('Skip [Generate word embedding]')
 
-    print('Transform entity embeddings')
-    transform_entity_embedding(
-        path.join(train_dir, 'entity_embedding.vec'),
-        path.join(train_dir, 'pretrained_entity_embedding.npy'),
-        path.join(train_dir, 'entity2int.tsv'))
+    if not path.exists(path.join(train_dir, 'pretrained_entity_embedding.npy')):
+        print('Transform entity embeddings')
+        transform_entity_embedding(
+            path.join(train_dir, 'train_entity_embedding.vec'),
+            path.join(train_dir, 'pretrained_entity_embedding.npy'),
+            path.join(train_dir, 'entity2int.tsv'))
+    else: print('Skip [Transform entity embeddings]')
 
-    print('\nProcess data for validation')
-
-    print('Parse news')
-    parse_news(path.join(val_dir, 'news.tsv'),
-               path.join(val_dir, 'news_parsed.tsv'),
-               path.join(train_dir, 'category2int.tsv'),
-               path.join(train_dir, 'word2int.tsv'),
-               path.join(train_dir, 'entity2int.tsv'),
-               mode='test')
+    if path.exists(val_dir):
+        print('\nProcess data for validation')
+        print('Parse news')
+        parse_news(path.join(val_dir, 'news.tsv'),
+                path.join(val_dir, 'news_parsed.tsv'),
+                path.join(train_dir, 'category2int.tsv'),
+                path.join(train_dir, 'word2int.tsv'),
+                path.join(train_dir, 'entity2int.tsv'),
+                mode='test')
+    else:
+        print(f'\n[{val_dir=}] not exist. Skipping [Process data for validation]')
 
     print('\nProcess data for test')
-
     print('Parse news')
-    parse_news(path.join(test_dir, 'news.tsv'),
+    parse_news(path.join(test_dir, 'test_news.tsv'),
                path.join(test_dir, 'news_parsed.tsv'),
                path.join(train_dir, 'category2int.tsv'),
                path.join(train_dir, 'word2int.tsv'),
