@@ -18,3 +18,4 @@ src/data/train/train_behaviors.tsv
 runs/
 checkpoint*/
 __pycache__/
+src/results.csv

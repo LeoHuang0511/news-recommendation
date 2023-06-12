@@ -203,7 +203,7 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
     news2vector['PADDED_NEWS'] = torch.zeros(
         list(news2vector.values())[0].size())
 
-    user_dataset = UserDataset(path.join(directory, 'val_behaviors.tsv'),
+    user_dataset = UserDataset(path.join(directory, 'behaviors.tsv'),
                                'data/train/user2int.tsv')
     user_dataloader = DataLoader(user_dataset,
                                  batch_size=config.batch_size * 16,
@@ -232,7 +232,7 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
                 if user not in user2vector:
                     user2vector[user] = vector
 
-    behaviors_dataset = BehaviorsDataset(path.join(directory, 'val_behaviors.tsv'))
+    behaviors_dataset = BehaviorsDataset(path.join(directory, 'behaviors.tsv'))
     behaviors_dataloader = DataLoader(behaviors_dataset,
                                       batch_size=1,
                                       shuffle=False,
@@ -241,6 +241,7 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
     count = 0
 
     tasks = []
+    result_dict = {}
 
     for minibatch in tqdm(behaviors_dataloader,
                           desc="Calculating probabilities"):
@@ -258,18 +259,20 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
                                                  user_vector)
 
         y_pred = click_probability.tolist()
-        y_true = [
-            int(news[0].split('-')[1]) for news in minibatch['impressions']
-        ]
+    #     y_true = [
+    #         int(news[0].split('-')[1]) for news in minibatch['impressions']
+    #     ]
 
-        tasks.append((y_true, y_pred))
+    #     tasks.append((y_true, y_pred))
 
-    with Pool(processes=num_workers) as pool:
-        results = pool.map(calculate_single_user_metric, tasks)
+    # with Pool(processes=num_workers) as pool:
+    #     results = pool.map(calculate_single_user_metric, tasks)
 
-    aucs, mrrs, ndcg5s, ndcg10s = np.array(results).T
-    return np.nanmean(aucs), np.nanmean(mrrs), np.nanmean(ndcg5s), np.nanmean(
-        ndcg10s)
+    # aucs, mrrs, ndcg5s, ndcg10s = np.array(results).T
+    # return np.nanmean(aucs), np.nanmean(mrrs), np.nanmean(ndcg5s), np.nanmean(
+    #     ndcg10s)
+        result_dict[f'{count-1}'] = y_pred
+    return result_dict
 
 
 if __name__ == '__main__':
@@ -287,8 +290,20 @@ if __name__ == '__main__':
     checkpoint = torch.load(checkpoint_path)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    auc, mrr, ndcg5, ndcg10 = evaluate(model, './data/test',
-                                       config.num_workers)
-    print(
-        f'AUC: {auc:.4f}\nMRR: {mrr:.4f}\nnDCG@5: {ndcg5:.4f}\nnDCG@10: {ndcg10:.4f}'
+    # auc, mrr, ndcg5, ndcg10 = evaluate(model, './data/test',
+    # # auc, mrr, ndcg5, ndcg10 = evaluate(model, './data/val',
+    #                                    config.num_workers)
+    # print(
+    #     f'AUC: {auc:.4f}\nMRR: {mrr:.4f}\nnDCG@5: {ndcg5:.4f}\nnDCG@10: {ndcg10:.4f}'
+    # )
+    
+    y_preds = evaluate(model, './data/test',
+    # y_preds = evaluate(model, './data/val',
+                      config.num_workers)
+    
+    results_to_submit = pd.DataFrame(y_preds).T
+    results_to_submit.to_csv(
+    'results.csv',
+    header=["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15"],
+    index_label='index'
     )
