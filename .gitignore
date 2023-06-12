@@ -1,4 +1,20 @@
-data/
+# data/
+src/data/glove/
+src/data/val/
+src/data/test/news_parsed.tsv
+src/data/test/*.vec
+src/data/train/*.npy
+src/data/train/*.vec
+src/data/train/news_parsed.tsv
+src/data/train/behaviors_parsed.tsv
+src/data/train/category2int.tsv
+src/data/train/entity2int.tsv
+src/data/train/user2int.tsv
+src/data/train/word2int.tsv
+
+src/data/train/train_behaviors.tsv
+# train_behaviors.tsv
+# train_news.tsv
 runs/
 checkpoint*/
 __pycache__/
