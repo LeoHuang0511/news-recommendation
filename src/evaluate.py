@@ -18,7 +18,7 @@ except AttributeError:
     print(f"{model_name} not included!")
     exit()
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 
 
 def dcg_score(y_true, y_score, k=10):
@@ -203,7 +203,7 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
     news2vector['PADDED_NEWS'] = torch.zeros(
         list(news2vector.values())[0].size())
 
-    user_dataset = UserDataset(path.join(directory, 'behaviors.tsv'),
+    user_dataset = UserDataset(path.join(directory, 'val_behaviors.tsv'),
                                'data/train/user2int.tsv')
     user_dataloader = DataLoader(user_dataset,
                                  batch_size=config.batch_size * 16,
@@ -232,7 +232,7 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
                 if user not in user2vector:
                     user2vector[user] = vector
 
-    behaviors_dataset = BehaviorsDataset(path.join(directory, 'behaviors.tsv'))
+    behaviors_dataset = BehaviorsDataset(path.join(directory, 'val_behaviors.tsv'))
     behaviors_dataloader = DataLoader(behaviors_dataset,
                                       batch_size=1,
                                       shuffle=False,
