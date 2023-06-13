@@ -241,7 +241,7 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
     count = 0
 
     tasks = []
-    result_dict = {}
+    # result_dict = {}
 
     for minibatch in tqdm(behaviors_dataloader,
                           desc="Calculating probabilities"):
@@ -259,20 +259,19 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
                                                  user_vector)
 
         y_pred = click_probability.tolist()
-    #     y_true = [
-    #         int(news[0].split('-')[1]) for news in minibatch['impressions']
-    #     ]
+        y_true = [
+            int(news[0].split('-')[1]) for news in minibatch['impressions']
+        ]
 
-    #     tasks.append((y_true, y_pred))
+        tasks.append((y_true, y_pred))
 
-    # with Pool(processes=num_workers) as pool:
-    #     results = pool.map(calculate_single_user_metric, tasks)
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(calculate_single_user_metric, tasks)
 
-    # aucs, mrrs, ndcg5s, ndcg10s = np.array(results).T
-    # return np.nanmean(aucs), np.nanmean(mrrs), np.nanmean(ndcg5s), np.nanmean(
-    #     ndcg10s)
-        result_dict[f'{count-1}'] = y_pred
-    return result_dict
+    aucs, mrrs, ndcg5s, ndcg10s = np.array(results).T
+    return np.nanmean(aucs), np.nanmean(mrrs), np.nanmean(ndcg5s), np.nanmean(ndcg10s)
+        # result_dict[f'{count-1}'] = y_pred
+    # return result_dict
 
 
 if __name__ == '__main__':
