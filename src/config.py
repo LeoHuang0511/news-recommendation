@@ -3,10 +3,17 @@ import os
 model_name = os.environ['MODEL_NAME'] if 'MODEL_NAME' in os.environ else 'NRMS'
 # Currently included model
 assert model_name in [
-    'NRMS', 'NAML', 'LSTUR', 'DKN', 'HiFiArk', 'TANR', #'Exp1'
+    'NRMS',
+    'NAML',
+    'LSTUR',
+    'DKN',
+    'HiFiArk',
+    'TANR',
+    'Exp1'
 ]
 
-USING_CUDA_DEVICE: int = 3
+USING_CUDA_DEVICE: int = os.environ['CUDA'] if 'CUDA' in os.environ else 3
+# USING_CUDA_DEVICE: int = 3
 
 class BaseConfig():
     """
