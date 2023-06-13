@@ -6,6 +6,7 @@ assert model_name in [
     'NRMS', 'NAML', 'LSTUR', 'DKN', 'HiFiArk', 'TANR', #'Exp1'
 ]
 
+USING_CUDA_DEVICE: int = 3
 
 class BaseConfig():
     """

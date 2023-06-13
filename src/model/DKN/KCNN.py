@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model.general.attention.additive import AdditiveAttention
 
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+from config import USING_CUDA_DEVICE
+device = torch.device(f"cuda:{USING_CUDA_DEVICE}" if torch.cuda.is_available() else "cpu")
 
 
 class KCNN(torch.nn.Module):

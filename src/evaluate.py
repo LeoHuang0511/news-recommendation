@@ -18,7 +18,8 @@ except AttributeError:
     print(f"{model_name} not included!")
     exit()
 
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+from config import USING_CUDA_DEVICE
+device = torch.device(f"cuda:{USING_CUDA_DEVICE}" if torch.cuda.is_available() else "cpu")
 
 
 def dcg_score(y_true, y_score, k=10):
