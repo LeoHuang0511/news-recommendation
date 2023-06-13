@@ -3,7 +3,7 @@ import os
 model_name = os.environ['MODEL_NAME'] if 'MODEL_NAME' in os.environ else 'NRMS'
 # Currently included model
 assert model_name in [
-    'NRMS'#, 'NAML', 'LSTUR', 'DKN', 'HiFiArk', 'TANR', 'Exp1'
+    'NRMS', 'NAML', 'LSTUR', 'DKN', 'HiFiArk', 'TANR', #'Exp1'
 ]
 
 
@@ -11,11 +11,11 @@ class BaseConfig():
     """
     General configurations appiled to all models
     """
-    num_epochs = 2
+    num_epochs = 5
     num_batches_show_loss = 100  # Number of batchs to show loss
     # Number of batchs to check metrics on validation dataset
     num_batches_validate = 1000
-    batch_size = 128
+    batch_size = 256
     learning_rate = 0.0001
     num_workers = 24  # Number of workers for data loading
     num_clicked_news_a_user = 50  # Number of sampled click history for each user
@@ -26,17 +26,20 @@ class BaseConfig():
     entity_confidence_threshold = 0.5
     negative_sampling_ratio = 2  # K
     dropout_probability = 0.2
+
     # Modify the following by the output of `src/dataprocess.py`
     # num_words = 1 + 70975
-    num_words = 1 + 101249
     # num_categories = 1 + 274
-    num_categories = 1 + 295
     # num_entities = 1 + 12957
-    num_entities = 1 + 21842
     # num_users = 1 + 50000
-    num_users = 1 + 213250
+    num_words = 1 + 101249
+    num_categories = 1 + 295
+    num_entities = 1 + 21842
+    num_users = 1 + 196688
+
     word_embedding_dim = 300
     category_embedding_dim = 100
+
     # Modify the following only if you use another dataset
     entity_embedding_dim = 100
     # For additive attention

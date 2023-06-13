@@ -131,7 +131,7 @@ def parse_news(source, target, category2int_path, word2int_path,
         except:
             print(f'[{row.id}]{row.title_entities = }')
             print(f'{row_title_entities = }')
-            exit()
+            raise ValueError("Something went wrong, please check.")
 
         row_abstract_entities = row.abstract_entities.replace('""', '"') 
         if len(row.abstract_entities) > 2:
@@ -145,7 +145,7 @@ def parse_news(source, target, category2int_path, word2int_path,
         except:
             print(f'[{row.id}]{row.abstract_entities = }')
             print(f'{row_abstract_entities = }')
-            exit()
+            raise ValueError("Something went wrong, please check.")
 
         try:
             for i, w in enumerate(word_tokenize(row.title.lower())):
@@ -211,7 +211,7 @@ def parse_news(source, target, category2int_path, word2int_path,
             except:
                 print(f'[{row.id}]{row.title_entities = }')
                 print(f'{row_title_entities = }')
-                exit()
+                raise ValueError("Something went wrong, please check.")
 
             # print(f'{row.abstract_entities = }')
             row_abstract_entities = row.abstract_entities.replace('""', '"') 
@@ -349,20 +349,20 @@ if __name__ == '__main__':
 
     if not path.exists(path.join(train_dir, 'behaviors_parsed.tsv')):
         print('Parse behaviors')
-        parse_behaviors(path.join(train_dir, 'train_behaviors.tsv'),
+        parse_behaviors(path.join(train_dir, 'behaviors.tsv'),
                         path.join(train_dir, 'behaviors_parsed.tsv'),
                         path.join(train_dir, 'user2int.tsv'))
-    else: print('Skip [Parse behaviors]')
+    else: print('Skip [Parse behaviors for train]')
 
     if not path.exists(path.join(train_dir, 'news_parsed.tsv')):
         print('Parse news')
-        parse_news(path.join(train_dir, 'train_news.tsv'),
-                path.join(train_dir, 'news_parsed.tsv'),
-                path.join(train_dir, 'category2int.tsv'),
-                path.join(train_dir, 'word2int.tsv'),
-                path.join(train_dir, 'entity2int.tsv'),
-                mode='train')
-    else: print('Skip [Parse news]')
+        parse_news(path.join(train_dir, 'news.tsv'),
+                   path.join(train_dir, 'news_parsed.tsv'),
+                   path.join(train_dir, 'category2int.tsv'),
+                   path.join(train_dir, 'word2int.tsv'),
+                   path.join(train_dir, 'entity2int.tsv'),
+                   mode='train')
+    else: print('Skip [Parse news for train]')
 
     if not path.exists(path.join(train_dir, 'pretrained_word_embedding.npy')):
         print('Generate word embedding')
@@ -392,11 +392,13 @@ if __name__ == '__main__':
     else:
         print(f'\n[{val_dir=}] not exist. Skipping [Process data for validation]')
 
-    print('\nProcess data for test')
-    print('Parse news')
-    parse_news(path.join(test_dir, 'test_news.tsv'),
-               path.join(test_dir, 'news_parsed.tsv'),
-               path.join(train_dir, 'category2int.tsv'),
-               path.join(train_dir, 'word2int.tsv'),
-               path.join(train_dir, 'entity2int.tsv'),
-               mode='test')
+    if not path.exists(path.join(test_dir, 'news_parsed.tsv')):
+      print('\nProcess data for test')
+      print('Parse news')
+      parse_news(path.join(test_dir, 'test_news.tsv'),
+                path.join(test_dir, 'news_parsed.tsv'),
+                path.join(train_dir, 'category2int.tsv'),
+                path.join(train_dir, 'word2int.tsv'),
+                path.join(train_dir, 'entity2int.tsv'),
+                mode='test')
+    else: print('Skip [Parse news for test]')

@@ -12,7 +12,7 @@ src/data/train/entity2int.tsv
 src/data/train/user2int.tsv
 src/data/train/word2int.tsv
 
-src/data/train/train_behaviors_sp.tsv
+src/data/train/behaviors.tsv
 src/data/train/train_behaviors.tsv
 # train_behaviors.tsv
 # train_news.tsv
