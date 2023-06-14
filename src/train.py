@@ -13,10 +13,13 @@ from pathlib import Path
 from evaluate import evaluate
 import importlib
 import datetime
+from torch.optim.lr_scheduler import _LRScheduler
+import math
 
 try:
     Model = getattr(importlib.import_module(f"model.{model_name}"), model_name)
     config = getattr(importlib.import_module('config'), f"{model_name}Config")
+    
 except AttributeError:
     print(f"{model_name} not included!")
     exit()
@@ -24,6 +27,90 @@ except AttributeError:
 from config import USING_CUDA_DEVICE
 device = torch.device(f"cuda:{USING_CUDA_DEVICE}" if torch.cuda.is_available() else "cpu")
 
+class CosineAnnealingWarmupRestarts(_LRScheduler):
+    """
+        optimizer (Optimizer): Wrapped optimizer.
+        first_cycle_steps (int): First cycle step size.
+        cycle_mult(float): Cycle steps magnification. Default: -1.
+        max_lr(float): First cycle's max learning rate. Default: 0.1.
+        min_lr(float): Min learning rate. Default: 0.001.
+        warmup_steps(int): Linear warmup step size. Default: 0.
+        gamma(float): Decrease rate of max learning rate by cycle. Default: 1.
+        last_epoch (int): The index of last epoch. Default: -1.
+    """
+    
+    def __init__(self,
+                 optimizer : torch.optim.Optimizer,
+                 first_cycle_steps : int,
+                 cycle_mult : float = 1.,
+                 max_lr : float = 0.1,
+                 min_lr : float = 0.001,
+                 warmup_steps : int = 0,
+                 gamma : float = 1.,
+                 last_epoch : int = -1
+        ):
+        assert warmup_steps < first_cycle_steps
+        
+        self.first_cycle_steps = first_cycle_steps # first cycle step size
+        self.cycle_mult = cycle_mult # cycle steps magnification
+        self.base_max_lr = max_lr # first max learning rate
+        self.max_lr = max_lr # max learning rate in the current cycle
+        self.min_lr = min_lr # min learning rate
+        self.warmup_steps = warmup_steps # warmup step size
+        self.gamma = gamma # decrease rate of max learning rate by cycle
+        
+        self.cur_cycle_steps = first_cycle_steps # first cycle step size
+        self.cycle = 0 # cycle count
+        self.step_in_cycle = last_epoch # step size of the current cycle
+        
+        super(CosineAnnealingWarmupRestarts, self).__init__(optimizer, last_epoch)
+        
+        # set learning rate min_lr
+        self.init_lr()
+    
+    def init_lr(self):
+        self.base_lrs = []
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.min_lr
+            self.base_lrs.append(self.min_lr)
+    
+    def get_lr(self):
+        if self.step_in_cycle == -1:
+            return self.base_lrs
+        elif self.step_in_cycle < self.warmup_steps:
+            return [(self.max_lr - base_lr)*self.step_in_cycle / self.warmup_steps + base_lr for base_lr in self.base_lrs]
+        else:
+            return [base_lr + (self.max_lr - base_lr) \
+                    * (1 + math.cos(math.pi * (self.step_in_cycle-self.warmup_steps) \
+                                    / (self.cur_cycle_steps - self.warmup_steps))) / 2
+                    for base_lr in self.base_lrs]
+
+    def step(self, epoch=None):
+        if epoch is None:
+            epoch = self.last_epoch + 1
+            self.step_in_cycle = self.step_in_cycle + 1
+            if self.step_in_cycle >= self.cur_cycle_steps:
+                self.cycle += 1
+                self.step_in_cycle = self.step_in_cycle - self.cur_cycle_steps
+                self.cur_cycle_steps = int((self.cur_cycle_steps - self.warmup_steps) * self.cycle_mult) + self.warmup_steps
+        else:
+            if epoch >= self.first_cycle_steps:
+                if self.cycle_mult == 1.:
+                    self.step_in_cycle = epoch % self.first_cycle_steps
+                    self.cycle = epoch // self.first_cycle_steps
+                else:
+                    n = int(math.log((epoch / self.first_cycle_steps * (self.cycle_mult - 1) + 1), self.cycle_mult))
+                    self.cycle = n
+                    self.step_in_cycle = epoch - int(self.first_cycle_steps * (self.cycle_mult ** n - 1) / (self.cycle_mult - 1))
+                    self.cur_cycle_steps = self.first_cycle_steps * self.cycle_mult ** (n)
+            else:
+                self.cur_cycle_steps = self.first_cycle_steps
+                self.step_in_cycle = epoch
+                
+        self.max_lr = self.base_max_lr * (self.gamma**self.cycle)
+        self.last_epoch = math.floor(epoch)
+        for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
+            param_group['lr'] = lr
 
 class EarlyStopping:
     def __init__(self, patience=5):
@@ -124,22 +211,30 @@ def train():
                    drop_last=True,
                    pin_memory=True))
     if model_name != 'Exp1':
-        criterion = nn.CrossEntropyLoss()
+        # criterion = nn.CrossEntropyLoss()
+        criterion = nn.BCELoss(size_average=True)
         optimizer = torch.optim.Adam(model.parameters(),
                                      lr=config.learning_rate)
+        # lr_scheduler = CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=config.warmup_epoch*len(dataloader)*2,cycle_mult=2,max_lr=config.learning_rate,min_lr=config.min_learning_rate,warmup_steps=config.warmup_epoch*len(dataloader),gamma=0.8)
     else:
         criterion = nn.NLLLoss()
         optimizers = [
             torch.optim.Adam(model.parameters(), lr=config.learning_rate)
             for model in models
         ]
+
+        # lr_schedulers = [
+        #     CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=config.warmup_epoch*len(dataloader)*2,cycle_mult=2,max_lr=config.learning_rate,min_lr=config.min_learning_rate,warmup_steps=config.warmup_epoch*len(dataloader),gamma=0.8)
+        #     for optimizer in optimizers
+        # ]
+
     start_time = time.time()
     loss_full = []
     exhaustion_count = 0
     step = 0
     early_stopping = EarlyStopping()
 
-    checkpoint_dir = os.path.join('./checkpoint', model_name)
+    checkpoint_dir = os.path.join('./checkpoint', f"{model_name}-{os.environ['REMARK'] if 'REMARK' in os.environ else ''}")
     Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
 
     checkpoint_path = latest_checkpoint(checkpoint_dir)
@@ -232,12 +327,19 @@ def train():
         loss.backward()
         if model_name != 'Exp1':
             optimizer.step()
+            # lr_scheduler.step()
+            current_lr = optimizer.param_groups[0]['lr']
+
         else:
             for optimizer in optimizers:
                 optimizer.step()
+            # for lr_scheduler in lr_schedulers:
+            #     lr_scheduler.step()
+            current_lr = optimizers[0].param_groups[0]['lr']
 
         if i % 10 == 0:
             writer.add_scalar('Train/Loss', loss.item(), step)
+            writer.add_scalar('lr', float(current_lr), step)
 
         if i % config.num_batches_show_loss == 0:
             tqdm.write(
@@ -275,7 +377,10 @@ def train():
                             step,
                             'early_stop_value':
                             -val_auc
-                        }, f"./checkpoint/{model_name}/ckpt-{step}.pth")
+                        # }, f"./checkpoint/{model_name}/ckpt-{step}.pth")
+                        }, f"./checkpoint/{model_name}-{os.environ['REMARK'] if 'REMARK' in os.environ else ''}/ckpt-{step}.pth")
+
+                        
                 except OSError as error:
                     print(f"OS error: {error}")
 
