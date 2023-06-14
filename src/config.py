@@ -33,8 +33,8 @@ class BaseConfig():
     min_learning_rate = 1e-6 
     num_workers = 24  # Number of workers for data loading
     num_clicked_news_a_user = 50  # Number of sampled click history for each user
-    num_words_title = 20
-    # num_words_title = 40
+    # num_words_title = 20
+    num_words_title = 30
 
     num_words_abstract = 50
     # num_words_abstract = 30
