@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 
 
 class DotProductClickPredictor(torch.nn.Module):
@@ -17,5 +16,6 @@ class DotProductClickPredictor(torch.nn.Module):
         # batch_size, candidate_size
         probability = torch.bmm(candidate_news_vector,
                                 user_vector.unsqueeze(dim=-1)).squeeze(dim=-1)
-
+        
+        probability = F.sigmoid(probability)
         return probability
