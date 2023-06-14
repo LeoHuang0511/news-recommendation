@@ -1,6 +1,8 @@
 import os
 
 model_name = os.environ['MODEL_NAME'] if 'MODEL_NAME' in os.environ else 'NRMS'
+# lr = os.environ['LR'] if 'LR' in os.environ else 1e-4
+
 # Currently included model
 assert model_name in [
     'NRMS',
@@ -19,20 +21,26 @@ class BaseConfig():
     """
     General configurations appiled to all models
     """
-    num_epochs = 5
+    num_epochs = 40
     num_batches_show_loss = 100  # Number of batchs to show loss
     # Number of batchs to check metrics on validation dataset
     num_batches_validate = 1000
-    batch_size = 256
-    learning_rate = 0.0001
+    batch_size = 768
+    learning_rate = float(os.environ['LR'] if 'LR' in os.environ else 1e-4)
+    warmup_epoch = 1
+    min_learning_rate = 1e-6 
     num_workers = 24  # Number of workers for data loading
     num_clicked_news_a_user = 50  # Number of sampled click history for each user
     num_words_title = 20
+    # num_words_title = 40
+
     num_words_abstract = 50
+    # num_words_abstract = 30
+
     word_freq_threshold = 1
     entity_freq_threshold = 2
     entity_confidence_threshold = 0.5
-    negative_sampling_ratio = 2  # K
+    negative_sampling_ratio = 4  # K
     dropout_probability = 0.2
 
     # Modify the following by the output of `src/dataprocess.py`
@@ -66,7 +74,7 @@ class NAMLConfig(BaseConfig):
         "record": []
     }
     # For CNN
-    num_filters = 300
+    num_filters = 400
     window_size = 3
 
 

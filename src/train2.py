@@ -297,91 +297,96 @@ def train():
         else:
             y_pred = model(minibatch["candidate_news"],
                            minibatch["clicked_news"])
+        # print(np.array(minibatch["candidate_news"]).shape)
         y = torch.zeros(len(y_pred)).long().to(device)
+        # print('pred \n',y_pred.shape)
+        # print('y \n',y)
+        print(y_pred.shape)
         loss = criterion(y_pred, y)
+        print(loss)
 
-        if model_name == 'HiFiArk':
-            if i % 10 == 0:
-                writer.add_scalar('Train/BaseLoss', loss.item(), step)
-                writer.add_scalar('Train/RegularizerLoss',
-                                  regularizer_loss.item(), step)
-                writer.add_scalar('Train/RegularizerBaseRatio',
-                                  regularizer_loss.item() / loss.item(), step)
-            loss += config.regularizer_loss_weight * regularizer_loss
-        elif model_name == 'TANR':
-            if i % 10 == 0:
-                writer.add_scalar('Train/BaseLoss', loss.item(), step)
-                writer.add_scalar('Train/TopicClassificationLoss',
-                                  topic_classification_loss.item(), step)
-                writer.add_scalar(
-                    'Train/TopicBaseRatio',
-                    topic_classification_loss.item() / loss.item(), step)
-            loss += config.topic_classification_loss_weight * topic_classification_loss
-        loss_full.append(loss.item())
-        if model_name != 'Exp1':
-            optimizer.zero_grad()
-        else:
-            for optimizer in optimizers:
-                optimizer.zero_grad()
-        loss.backward()
-        if model_name != 'Exp1':
-            optimizer.step()
-            # lr_scheduler.step()
-            current_lr = optimizer.param_groups[0]['lr']
+        # if model_name == 'HiFiArk':
+        #     if i % 10 == 0:
+        #         writer.add_scalar('Train/BaseLoss', loss.item(), step)
+        #         writer.add_scalar('Train/RegularizerLoss',
+        #                           regularizer_loss.item(), step)
+        #         writer.add_scalar('Train/RegularizerBaseRatio',
+        #                           regularizer_loss.item() / loss.item(), step)
+        #     loss += config.regularizer_loss_weight * regularizer_loss
+        # elif model_name == 'TANR':
+        #     if i % 10 == 0:
+        #         writer.add_scalar('Train/BaseLoss', loss.item(), step)
+        #         writer.add_scalar('Train/TopicClassificationLoss',
+        #                           topic_classification_loss.item(), step)
+        #         writer.add_scalar(
+        #             'Train/TopicBaseRatio',
+        #             topic_classification_loss.item() / loss.item(), step)
+        #     loss += config.topic_classification_loss_weight * topic_classification_loss
+        # loss_full.append(loss.item())
+        # if model_name != 'Exp1':
+        #     optimizer.zero_grad()
+        # else:
+        #     for optimizer in optimizers:
+        #         optimizer.zero_grad()
+        # loss.backward()
+        # if model_name != 'Exp1':
+        #     optimizer.step()
+        #     # lr_scheduler.step()
+        #     current_lr = optimizer.param_groups[0]['lr']
 
-        else:
-            for optimizer in optimizers:
-                optimizer.step()
-            # for lr_scheduler in lr_schedulers:
-            #     lr_scheduler.step()
-            current_lr = optimizers[0].param_groups[0]['lr']
+        # else:
+        #     for optimizer in optimizers:
+        #         optimizer.step()
+        #     # for lr_scheduler in lr_schedulers:
+        #     #     lr_scheduler.step()
+        #     current_lr = optimizers[0].param_groups[0]['lr']
 
-        if i % 10 == 0:
-            writer.add_scalar('Train/Loss', loss.item(), step)
-            writer.add_scalar('lr', float(current_lr), step)
+        # if i % 10 == 0:
+        #     writer.add_scalar('Train/Loss', loss.item(), step)
+        #     writer.add_scalar('lr', float(current_lr), step)
 
-        if i % config.num_batches_show_loss == 0:
-            tqdm.write(
-                f"Time {time_since(start_time)}, batches {i}, current loss {loss.item():.4f}, average loss: {np.mean(loss_full):.4f}, latest average loss: {np.mean(loss_full[-256:]):.4f}"
-            )
+        # if i % config.num_batches_show_loss == 0:
+        #     tqdm.write(
+        #         f"Time {time_since(start_time)}, batches {i}, current loss {loss.item():.4f}, average loss: {np.mean(loss_full):.4f}, latest average loss: {np.mean(loss_full[-256:]):.4f}"
+        #     )
 
-        if i % config.num_batches_validate == 0:
-            (model if model_name != 'Exp1' else models[0]).eval()
-            val_auc, val_mrr, val_ndcg5, val_ndcg10 = evaluate(
-                model if model_name != 'Exp1' else models[0], './data/val',
-                config.num_workers, 200000)
-            (model if model_name != 'Exp1' else models[0]).train()
-            writer.add_scalar('Validation/AUC', val_auc, step)
-            writer.add_scalar('Validation/MRR', val_mrr, step)
-            writer.add_scalar('Validation/nDCG@5', val_ndcg5, step)
-            writer.add_scalar('Validation/nDCG@10', val_ndcg10, step)
-            tqdm.write(
-                f"Time {time_since(start_time)}, batches {i}, validation AUC: {val_auc:.4f}, validation MRR: {val_mrr:.4f}, validation nDCG@5: {val_ndcg5:.4f}, validation nDCG@10: {val_ndcg10:.4f}, "
-            )
+        # if i % config.num_batches_validate == 0:
+        #     (model if model_name != 'Exp1' else models[0]).eval()
+        #     val_auc, val_mrr, val_ndcg5, val_ndcg10 = evaluate(
+        #         model if model_name != 'Exp1' else models[0], './data/val',
+        #         config.num_workers, 200000)
+        #     (model if model_name != 'Exp1' else models[0]).train()
+        #     writer.add_scalar('Validation/AUC', val_auc, step)
+        #     writer.add_scalar('Validation/MRR', val_mrr, step)
+        #     writer.add_scalar('Validation/nDCG@5', val_ndcg5, step)
+        #     writer.add_scalar('Validation/nDCG@10', val_ndcg10, step)
+        #     tqdm.write(
+        #         f"Time {time_since(start_time)}, batches {i}, validation AUC: {val_auc:.4f}, validation MRR: {val_mrr:.4f}, validation nDCG@5: {val_ndcg5:.4f}, validation nDCG@10: {val_ndcg10:.4f}, "
+        #     )
 
-            early_stop, get_better = early_stopping(-val_auc)
-            if early_stop:
-                tqdm.write('Early stop.')
-                break
-            elif get_better:
-                try:
-                    torch.save(
-                        {
-                            'model_state_dict': (model if model_name != 'Exp1'
-                                                 else models[0]).state_dict(),
-                            'optimizer_state_dict':
-                            (optimizer if model_name != 'Exp1' else
-                             optimizers[0]).state_dict(),
-                            'step':
-                            step,
-                            'early_stop_value':
-                            -val_auc
-                        # }, f"./checkpoint/{model_name}/ckpt-{step}.pth")
-                        }, f"./checkpoint/{model_name}-{os.environ['REMARK'] if 'REMARK' in os.environ else ''}/ckpt-{step}.pth")
+        #     early_stop, get_better = early_stopping(-val_auc)
+        #     if early_stop:
+        #         tqdm.write('Early stop.')
+        #         break
+        #     elif get_better:
+        #         try:
+        #             torch.save(
+        #                 {
+        #                     'model_state_dict': (model if model_name != 'Exp1'
+        #                                          else models[0]).state_dict(),
+        #                     'optimizer_state_dict':
+        #                     (optimizer if model_name != 'Exp1' else
+        #                      optimizers[0]).state_dict(),
+        #                     'step':
+        #                     step,
+        #                     'early_stop_value':
+        #                     -val_auc
+        #                 # }, f"./checkpoint/{model_name}/ckpt-{step}.pth")
+        #                 }, f"./checkpoint/{model_name}-{os.environ['REMARK'] if 'REMARK' in os.environ else ''}/ckpt-{step}.pth")
 
                         
-                except OSError as error:
-                    print(f"OS error: {error}")
+        #         except OSError as error:
+        #             print(f"OS error: {error}")
 
 
 def time_since(since):

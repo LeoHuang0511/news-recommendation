@@ -51,6 +51,7 @@ class NAML(torch.nn.Module):
         # batch_size, 1 + K
         click_probability = self.click_predictor(candidate_news_vector,
                                                  user_vector)
+        # print(click_probability.shape)
         return click_probability
 
     def get_news_vector(self, news):
