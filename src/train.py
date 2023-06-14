@@ -13,6 +13,8 @@ from pathlib import Path
 from evaluate import evaluate
 import importlib
 import datetime
+from torch.optim.lr_scheduler import _LRScheduler
+import math
 
 try:
     Model = getattr(importlib.import_module(f"model.{model_name}"), model_name)
@@ -209,11 +211,11 @@ def train():
                    drop_last=True,
                    pin_memory=True))
     if model_name != 'Exp1':
-        criterion = nn.CrossEntropyLoss()
+        # criterion = nn.CrossEntropyLoss()
+        criterion = nn.BCELoss(size_average=True)
         optimizer = torch.optim.Adam(model.parameters(),
                                      lr=config.learning_rate)
-        lr_scheduler = CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=config.warmup_epoch*2,cycle_mult=2,max_lr=config.learning_rate,min_lr=config.min_learning_rate,warmup_steps=config.warmup_epoch,gamma=0.8)
-
+        # lr_scheduler = CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=config.warmup_epoch*len(dataloader)*2,cycle_mult=2,max_lr=config.learning_rate,min_lr=config.min_learning_rate,warmup_steps=config.warmup_epoch*len(dataloader),gamma=0.8)
     else:
         criterion = nn.NLLLoss()
         optimizers = [
@@ -221,10 +223,10 @@ def train():
             for model in models
         ]
 
-        lr_schedulers = [
-            CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=config.warmup_epoch*2,cycle_mult=2,max_lr=config.learning_rate,min_lr=config.min_learning_rate,warmup_steps=config.warmup_epoch,gamma=0.8)
-            for optimizer in optimizers
-        ]
+        # lr_schedulers = [
+        #     CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=config.warmup_epoch*len(dataloader)*2,cycle_mult=2,max_lr=config.learning_rate,min_lr=config.min_learning_rate,warmup_steps=config.warmup_epoch*len(dataloader),gamma=0.8)
+        #     for optimizer in optimizers
+        # ]
 
     start_time = time.time()
     loss_full = []
@@ -232,7 +234,7 @@ def train():
     step = 0
     early_stopping = EarlyStopping()
 
-    checkpoint_dir = os.path.join('./checkpoint', model_name)
+    checkpoint_dir = os.path.join('./checkpoint', f"{model_name}-{os.environ['REMARK'] if 'REMARK' in os.environ else ''}")
     Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
 
     checkpoint_path = latest_checkpoint(checkpoint_dir)
@@ -325,14 +327,14 @@ def train():
         loss.backward()
         if model_name != 'Exp1':
             optimizer.step()
-            lr_scheduler.step()
-            current_lr = optimizers.param_groups[0]['lr']
+            # lr_scheduler.step()
+            current_lr = optimizer.param_groups[0]['lr']
 
         else:
             for optimizer in optimizers:
                 optimizer.step()
-            for lr_scheduler in lr_schedulers:
-                lr_scheduler.step()
+            # for lr_scheduler in lr_schedulers:
+            #     lr_scheduler.step()
             current_lr = optimizers[0].param_groups[0]['lr']
 
         if i % 10 == 0:
@@ -375,7 +377,10 @@ def train():
                             step,
                             'early_stop_value':
                             -val_auc
-                        }, f"./checkpoint/{model_name}/ckpt-{step}.pth")
+                        # }, f"./checkpoint/{model_name}/ckpt-{step}.pth")
+                        }, f"./checkpoint/{model_name}-{os.environ['REMARK'] if 'REMARK' in os.environ else ''}/ckpt-{step}.pth")
+
+                        
                 except OSError as error:
                     print(f"OS error: {error}")
 
