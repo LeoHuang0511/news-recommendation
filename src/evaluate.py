@@ -184,6 +184,7 @@ def evaluate(model, directory, num_workers, max_count=sys.maxsize):
         nDCG@10
     """
     news_dataset = NewsDataset(path.join(directory, 'news_parsed.tsv'))
+    # print(news_dataset.device)
     news_dataloader = DataLoader(news_dataset,
                                  batch_size=config.batch_size * 16,
                                  shuffle=False,

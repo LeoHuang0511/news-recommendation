@@ -97,6 +97,7 @@ class NewsEncoder(torch.nn.Module):
         Returns:
             (shape) batch_size, num_filters
         """
+        # print(device)
         text_vectors = [
             encoder(news[name].to(device))
             for name, encoder in self.text_encoders.items()

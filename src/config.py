@@ -14,7 +14,7 @@ assert model_name in [
     'Exp1'
 ]
 
-USING_CUDA_DEVICE: int = os.environ['CUDA'] if 'CUDA' in os.environ else 3
+USING_CUDA_DEVICE: int = os.environ['CUDA'] if 'CUDA' in os.environ else 2
 # USING_CUDA_DEVICE: int = 3
 
 class BaseConfig():
@@ -23,7 +23,6 @@ class BaseConfig():
     """
 
     num_epochs = 40
-    num_epochs = 5
     num_batches_show_loss = 100  # Number of batchs to show loss
     # Number of batchs to check metrics on validation dataset
     num_batches_validate = 1000
